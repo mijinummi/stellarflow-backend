@@ -9,6 +9,10 @@ export type ReloadTrigger = "admin-endpoint" | "file-watcher" | "startup";
 let reloadCount: number = 0;
 const KEY_SLOT = "stellar-secret";
 
+function shouldFailFast(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
 /**
  * Validates a candidate Stellar secret key.
  * Throws with a safe message — never includes the candidate value.
@@ -56,17 +60,31 @@ function init(): void {
     }
 
     if (!finalKey) {
-      console.error("❌ [SecretManager] CRITICAL: No signing key found in environment variables.");
-      console.error("Please set STELLAR_SECRET or ENCRYPTED_STELLAR_SECRET.");
-      process.exit(1);
+      if (shouldFailFast()) {
+        console.error("❌ [SecretManager] CRITICAL: No signing key found in environment variables.");
+        console.error("Please set STELLAR_SECRET or ENCRYPTED_STELLAR_SECRET.");
+        process.exit(1);
+      }
+
+      logger.warn("[SecretManager] No signing key found; continuing without initialization.", "SecretManager", {
+        nodeEnv: process.env.NODE_ENV ?? "undefined",
+      });
+      return;
     }
 
     validateKey(finalKey);
     vault.register(KEY_SLOT, finalKey);
     logger.info("[SecretManager] Signing key successfully loaded into secure vault.");
   } catch (err: any) {
-    console.error(`❌ [SecretManager] CRITICAL: Failed to load signing key: ${err.message}`);
-    process.exit(1);
+    if (shouldFailFast()) {
+      console.error(`❌ [SecretManager] CRITICAL: Failed to load signing key: ${err.message}`);
+      process.exit(1);
+    }
+
+    logger.warn("[SecretManager] Failed to load signing key; continuing without initialization.", "SecretManager", {
+      error: err.message,
+      nodeEnv: process.env.NODE_ENV ?? "undefined",
+    });
   }
 }
 
