@@ -353,7 +353,14 @@ export class SystemControlController {
   /**
    * Execute the actual system action
    */
-  private async executeAction(actionType: string, actionData: string): Promise<string> {
+  private async executeAction(
+    actionType: string,
+    actionData?: string | null,
+  ): Promise<string> {
+    if (!actionData) {
+      throw new Error(`Missing action data for action type: ${actionType}`);
+    }
+
     switch (actionType) {
       case "HALT":
         return this.executeHaltAction(JSON.parse(actionData));
