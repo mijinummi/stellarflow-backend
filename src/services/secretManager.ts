@@ -9,6 +9,10 @@ export type ReloadTrigger = "admin-endpoint" | "file-watcher" | "startup";
 let reloadCount: number = 0;
 const KEY_SLOT = "stellar-secret";
 
+function shouldFailFast(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
 /**
  * Validates a candidate Stellar secret key.
  * Throws with a safe message — never includes the candidate value.

@@ -290,7 +290,7 @@ export const deleteRelayerRegistry = async (req: Request, res: Response) => {
 
     // Log audit event before deletion
     const adminInfo = extractAdminInfo(req);
-    await logAuditEvent({
+    const deleteAuditPayload: Parameters<typeof logAuditEvent>[0] = {
       eventType: "RELAYER_REGISTRY_DELETED",
       actionType: "RELAYER_REGISTRY",
       relatedId: existing.id,

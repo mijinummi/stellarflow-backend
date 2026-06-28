@@ -79,6 +79,15 @@ type MonitorFailureAlertDetails = {
   timestamp: Date;
 };
 
+type PriorityAlertDetails = {
+  currency: string;
+  rate: number;
+  zScore: number;
+  mean: number;
+  stdDev: number;
+  timestamp: Date;
+};
+
 export class WebhookService {
   private webhookUrl: string | undefined;
   private platform: string;
@@ -311,6 +320,59 @@ export class WebhookService {
               type: "mrkdwn",
               text: `Detected at ${timestamp.toISOString()}`,
             },
+          ],
+        },
+      ],
+    };
+  }
+
+  private formatPriorityAlert(alertDetails: PriorityAlertDetails): WebhookPayload {
+    const { currency, rate, zScore, mean, stdDev, timestamp } = alertDetails;
+
+    if (this.platform === "discord") {
+      return {
+        embeds: [
+          {
+            title: "⚠️ High Priority Market Anomaly Detected",
+            color: 0xff6b00,
+            fields: [
+              { name: "Currency", value: currency, inline: true },
+              { name: "Rate", value: rate.toString(), inline: true },
+              { name: "Z-Score", value: zScore.toFixed(2), inline: true },
+              { name: "Mean", value: mean.toString(), inline: true },
+              { name: "Std Dev", value: stdDev.toString(), inline: true },
+              { name: "Time", value: timestamp.toISOString() },
+            ],
+          },
+        ],
+      };
+    }
+
+    return {
+      blocks: [
+        {
+          type: "header",
+          text: { type: "plain_text", text: "⚠️ High Priority Market Anomaly Detected" },
+        },
+        {
+          type: "section",
+          fields: [
+            { type: "mrkdwn", text: `*Currency:*
+${currency}` },
+            { type: "mrkdwn", text: `*Rate:*
+${rate}` },
+            { type: "mrkdwn", text: `*Z-Score:*
+${zScore.toFixed(2)}` },
+            { type: "mrkdwn", text: `*Mean:*
+${mean}` },
+            { type: "mrkdwn", text: `*Std Dev:*
+${stdDev}` },
+          ],
+        },
+        {
+          type: "context",
+          elements: [
+            { type: "mrkdwn", text: `Detected at ${timestamp.toISOString()}` },
           ],
         },
       ],

@@ -274,6 +274,9 @@ export class PriceAggregatorService {
 
     const rates = ticks.map((t: any) => Number(t.rate));
 
+    const open = rates[0] ?? 0;
+    const close = rates[rates.length - 1] ?? 0;
+
     return {
       open: rates[0]!,
       high: Math.max(...rates),
