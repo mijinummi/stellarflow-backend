@@ -18,11 +18,11 @@ interface PriceSourceResult {
 
 /**
  * MiddleValuePriceService
- * 
+ *
  * This service waits for 3 different API responses before calculating the price.
- * It uses the middle value (median) of the three sources to reduce the impact 
+ * It uses the middle value (median) of the three sources to reduce the impact
  * of a single "rogue" API source.
- * 
+ *
  * This approach provides better price accuracy by:
  * 1. Waiting for multiple sources to respond
  * 2. Using the median value to eliminate outliers
@@ -33,7 +33,7 @@ export class MiddleValuePriceService {
 
   /**
    * Fetch prices from multiple sources in parallel and return the middle value
-   * 
+   *
    * @param sources - Array of functions that fetch prices from different APIs
    * @param currency - The currency code (e.g., 'NGN', 'KES', 'GHS')
    * @param timeoutMs - Maximum time to wait for all sources (default: 10000ms)
@@ -45,11 +45,15 @@ export class MiddleValuePriceService {
     timeoutMs: number = 10000,
   ): Promise<MarketRate> {
     if (sources.length < 3) {
-      throw new Error("At least 3 price sources are required for middle value calculation");
+      throw new Error(
+        "At least 3 price sources are required for middle value calculation",
+      );
     }
 
     const startTime = Date.now();
-    this.logger.info(`Fetching prices from ${sources.length} sources for ${currency}`);
+    this.logger.info(
+      `Fetching prices from ${sources.length} sources for ${currency}`,
+    );
 
     // Fetch from all sources in parallel with timeout
     const fetchPromises = sources.map(async (sourceFn, index) => {
@@ -57,7 +61,10 @@ export class MiddleValuePriceService {
         const result = await Promise.race([
           sourceFn(),
           new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error(`Source ${index + 1} timed out`)), timeoutMs)
+            setTimeout(
+              () => reject(new Error(`Source ${index + 1} timed out`)),
+              timeoutMs,
+            ),
           ),
         ]);
 
@@ -68,8 +75,8 @@ export class MiddleValuePriceService {
           success: true,
         };
       } catch (error) {
-        this.logger.warn(`Source ${index + 1} failed`, { 
-          error: error instanceof Error ? error.message : String(error) 
+        this.logger.warn(`Source ${index + 1} failed`, {
+          error: error instanceof Error ? error.message : String(error),
         });
         return {
           rate: 0,
@@ -83,22 +90,28 @@ export class MiddleValuePriceService {
 
     // Wait for all sources to complete
     const results = await Promise.all(fetchPromises);
-    const successfulResults = results.filter(r => r.success);
+    const successfulResults = results.filter((r) => r.success);
 
-    this.logger.info(`Received ${successfulResults.length}/${sources.length} successful responses for ${currency}`, {
-      duration: Date.now() - startTime,
-    });
+    this.logger.info(
+      `Received ${successfulResults.length}/${sources.length} successful responses for ${currency}`,
+      {
+        duration: Date.now() - startTime,
+      },
+    );
 
     // We need at least 3 successful responses for middle value calculation
     if (successfulResults.length < 3) {
       throw new Error(
         `Need at least 3 successful price sources, but only got ${successfulResults.length}. ` +
-        `Failed sources: ${results.filter(r => !r.success).map(r => r.source).join(', ')}`
+          `Failed sources: ${results
+            .filter((r) => !r.success)
+            .map((r) => r.source)
+            .join(", ")}`,
       );
     }
 
     // Extract rates and find the middle value (median)
-    const rates = successfulResults.map(r => r.rate);
+    const rates = successfulResults.map((r) => r.rate);
     const middleValue = this.calculateMiddleValue(rates);
 
     // Use the most recent timestamp from successful responses
@@ -124,13 +137,15 @@ export class MiddleValuePriceService {
   /**
    * Calculate the middle value (median) from an array of prices
    * For 3 values, this is the second value when sorted
-   * 
+   *
    * @param prices - Array of price values
    * @returns The middle value (median)
    */
   private calculateMiddleValue(prices: number[]): number {
     if (prices.length < 3) {
-      throw new Error("At least 3 prices are required to calculate middle value");
+      throw new Error(
+        "At least 3 prices are required to calculate middle value",
+      );
     }
 
     // Sort prices in ascending order
@@ -139,7 +154,7 @@ export class MiddleValuePriceService {
     // For odd number of elements, return the middle one
     // For even number, return the average of the two middle ones
     const middle = Math.floor(sorted.length / 2);
-    
+
     if (sorted.length % 2 === 1) {
       // Odd number: return the middle element
       return sorted[middle]!;
@@ -153,7 +168,7 @@ export class MiddleValuePriceService {
 
   /**
    * Create a price source function for CoinGecko API
-   * 
+   *
    * @param coinGeckoUrl - The CoinGecko API URL
    * @param currencyCode - The currency code (e.g., 'ngn', 'kes', 'ghs')
    * @returns Function that fetches price from CoinGecko
@@ -176,7 +191,11 @@ export class MiddleValuePriceService {
 
       // Extract price from response (adjust based on actual response structure)
       const stellarData = response.data.stellar;
-      if (!stellarData || typeof stellarData[currencyCode] !== "number" || stellarData[currencyCode] <= 0) {
+      if (
+        !stellarData ||
+        typeof stellarData[currencyCode] !== "number" ||
+        stellarData[currencyCode] <= 0
+      ) {
         throw new Error(`Invalid CoinGecko response for ${currencyCode}`);
       }
 
@@ -193,7 +212,7 @@ export class MiddleValuePriceService {
 
   /**
    * Create a price source function for ExchangeRate API
-   * 
+   *
    * @param exchangeRateUrl - The ExchangeRate API URL
    * @param currencyCode - The currency code (e.g., 'NGN', 'KES', 'GHS')
    * @returns Function that fetches price from ExchangeRate API
@@ -215,8 +234,14 @@ export class MiddleValuePriceService {
       );
 
       const data = response.data;
-      if (data.result !== "success" || !data.rates || typeof data.rates[currencyCode] !== "number") {
-        throw new Error(`Invalid ExchangeRate API response for ${currencyCode}`);
+      if (
+        data.result !== "success" ||
+        !data.rates ||
+        typeof data.rates[currencyCode] !== "number"
+      ) {
+        throw new Error(
+          `Invalid ExchangeRate API response for ${currencyCode}`,
+        );
       }
 
       const timestamp = data.time_last_update_unix
@@ -232,7 +257,7 @@ export class MiddleValuePriceService {
 
   /**
    * Create a price source function for a custom API
-   * 
+   *
    * @param url - The API URL
    * @param extractRate - Function to extract rate from response
    * @param extractTimestamp - Optional function to extract timestamp from response
