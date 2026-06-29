@@ -22,6 +22,25 @@ const consoleFormat = printf(
   },
 );
 
+import { HttpLogTransport }
+  from '../transport/httpLogTransport';
+
+const transports = [
+  new winston.transports.Console(),
+];
+
+if (
+  process.env
+    .LOG_STREAM_ENABLED ===
+  'true'
+) {
+  transports.push(
+    new HttpLogTransport({
+      level: 'info',
+    }) as any,
+  );
+}
+
 export const logger =
   winston.createLogger({
     level: 'info',
